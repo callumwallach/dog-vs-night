@@ -7,11 +7,12 @@ import { FlyingEnemy, GroundEnemy, ClimbingEnemy } from "./enemies.js";
 window.addEventListener("load", () => {
   const canvas = document.getElementById("canvas1");
   const ctx = canvas.getContext("2d");
-  canvas.width = 900;
+  canvas.width = 1200;
   canvas.height = 500;
   const maxLives = 5;
   const maxTime = 1 * 60 * 1000;
   const enemyInterval = 2000;
+  const fullScreenButton = document.getElementById("fullScreenButton");
 
   class Game {
     constructor(width, height) {
@@ -28,6 +29,7 @@ window.addEventListener("load", () => {
       this.enemies = [];
       this.particles = [];
       this.collisions = [];
+      this.powerUps = [];
       this.floatingMessages = [];
       this.maxParticles = 100;
       this.enemyTimer = 0;
@@ -44,7 +46,7 @@ window.addEventListener("load", () => {
     }
     update(deltaTime) {
       this.time += deltaTime;
-      if (this.time > this.maxTime) this.gameOver = true;
+      //if (this.time > this.maxTime) this.gameOver = true;
       this.background.update();
       this.player.update(this.input, deltaTime);
       // handle enemies
@@ -60,9 +62,12 @@ window.addEventListener("load", () => {
       // handle particles
       this.particles.forEach((particle, index) => particle.update());
       this.particles.length = Math.min(this.particles.length, this.maxParticles);
+      // handle power ups
+      this.powerUps.forEach((powerUp, index) => powerUp.update(deltaTime));
       // handle collision sprites
       this.collisions.forEach((collision, index) => collision.update(deltaTime));
       // clean up
+      this.powerUps = this.powerUps.filter((powerUp) => !powerUp.markedForDeletion);
       this.enemies = this.enemies.filter((enemy) => !enemy.markedForDeletion);
       this.particles = this.particles.filter((particle) => !particle.markedForDeletion);
       this.collisions = this.collisions.filter((collision) => !collision.markedForDeletion);
@@ -70,6 +75,7 @@ window.addEventListener("load", () => {
     }
     draw(context) {
       this.background.draw(context);
+      this.powerUps.forEach((powerUp) => powerUp.draw(context));
       this.player.draw(context);
       this.enemies.forEach((enemy) => enemy.draw(context));
       this.particles.forEach((particle) => particle.draw(context));
@@ -90,6 +96,7 @@ window.addEventListener("load", () => {
       this.enemies = [];
       this.particles = [];
       this.collisions = [];
+      this.powerUps = [];
       this.floatingMessages = [];
       this.enemyTimer = 0;
       this.score = 0;
@@ -101,6 +108,15 @@ window.addEventListener("load", () => {
       animate(0);
     }
   }
+
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      canvas.requestFullscreen().catch((err) => alert(`Error, can't enable full screen mode: ${err.message}`));
+    } else {
+      document.exitFullscreen();
+    }
+  }
+  fullScreenButton.addEventListener("click", toggleFullScreen);
 
   const game = new Game(canvas.width, canvas.height);
 

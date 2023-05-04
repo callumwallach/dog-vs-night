@@ -7,6 +7,7 @@ class Enemy {
     this.frameInterval = 1000 / this.fps;
     this.frameTimer = 0;
     this.markedForDeletion = false;
+    this.isPoweredUp = Math.random() > 0.33;
   }
   update(deltaTime) {
     // movement

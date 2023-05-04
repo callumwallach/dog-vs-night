@@ -4,6 +4,7 @@ class UI {
     this.fontSize = 30;
     this.fontFamily = "Creepster";
     this.livesImage = document.getElementById("lives");
+    this.fireImage = document.getElementById("fire");
   }
   update() {}
   draw(context) {
@@ -24,15 +25,18 @@ class UI {
     for (let i = 0; i < this.game.lives; i++) {
       context.drawImage(this.livesImage, 25 * i + 20, 95, 25, 25);
     }
+    // empowered
+    if (this.game.player.isEmpowered()) {
+      context.drawImage(this.fireImage, 10, 115, 45, 45);
+    }
     // game over
     if (this.game.gameOver) {
       const playerWon = this.game.score >= this.game.winningScore;
       context.textAlign = "center";
       context.font = `${this.fontSize * 2}px ${this.fontFamily}`;
-      const heading = playerWon ? `Well done!` : `Love at first bite?`;
-      const message = playerWon
-        ? `What are the creatures of the night afraid of? YOU!!!`
-        : `Nope. Better luck next time!`;
+      //const heading = playerWon ? `Well done!` : `Love at first bite?`;
+      const heading = `Game Over!`;
+      const message = playerWon ? `What are the creatures of the night afraid of? YOU!!!` : `Better luck next time!`;
       context.fillText(heading, this.game.width * 0.5, this.game.height * 0.5 - 20);
       context.font = `${this.fontSize * 0.7}px ${this.fontFamily}`;
       context.fillText(message, this.game.width * 0.5, this.game.height * 0.5 + 20);

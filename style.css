@@ -15,6 +15,9 @@
   font-family: "Creepster", cursive;
 }
 
+#gem,
+#dog,
+#girl,
 #fire,
 #lives,
 #player,
@@ -28,4 +31,13 @@
 #enemySpider,
 #collisionAnimation {
   display: none;
+}
+
+#fullScreenButton {
+  position: absolute;
+  font-size: 20px;
+  padding: 10px;
+  top: 10px;
+  left: 50%;
+  transform: translate(-50%);
 }

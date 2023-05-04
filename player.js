@@ -1,19 +1,22 @@
-import { Sitting, Running, Jumping, Falling, Rolling, Hit, Diving } from "./playerStates.js";
-import CollisionAnimation from "./collectionAnimation.js";
+import { Sitting, Running, Jumping, Falling, Rolling, Hit, Diving, Empowered } from "./playerStates.js";
+import CollisionAnimation from "./collisionAnimation.js";
 import { MOVE_UP, MOVE_LEFT, MOVE_RIGHT } from "./constants.js";
 import FloatingMessages from "./floatingMessage.js";
+import appearance from "./assets/girl.json" assert { type: "json" };
+import PowerUp from "./powerUp.js";
 
 class Player {
   constructor(game) {
     this.game = game;
-    this.width = 100;
-    this.height = 91.3;
+    this.width = 0; //100;
+    this.height = 0; //91.3;
     this.x = 0;
-    this.y = this.#getGround();
+    this.y = 0; //this.#getGround();
     this.vy = 0;
     this.weight = 1;
     //this.image = player;
-    this.image = document.getElementById("player");
+    this.image = document.getElementById(appearance.imageName);
+    this.offsetY = null;
     this.frameX = 0;
     this.frameY = 0;
     this.jumpMax = 27;
@@ -25,18 +28,19 @@ class Player {
     this.speed = 0;
     this.maxSpeed = 10;
     this.states = [
-      new Sitting(this.game),
-      new Running(this.game),
-      new Jumping(this.game),
-      new Falling(this.game),
-      new Rolling(this.game),
-      new Diving(this.game),
-      new Hit(this.game),
+      new Sitting(this.game, appearance),
+      new Running(this.game, appearance),
+      new Jumping(this.game, appearance),
+      new Falling(this.game, appearance),
+      new Rolling(this.game, appearance),
+      new Diving(this.game, appearance),
+      new Hit(this.game, appearance),
+      new Empowered(this.game, appearance),
     ];
     this.currentState = null;
   }
   update(input, deltaTime) {
-    this.checkCollisions();
+    this.checkCollisions(deltaTime);
     this.currentState.handleInput(input);
     // horizontal speed
     this.x += this.speed;
@@ -75,7 +79,7 @@ class Player {
     context.drawImage(
       this.image,
       this.frameX * this.width,
-      this.frameY * this.height,
+      this.offsetY ? this.offsetY : this.frameY * this.height,
       this.width,
       this.height,
       this.x,
@@ -89,7 +93,19 @@ class Player {
     this.game.speed = this.game.maxSpeed * speed;
     this.currentState.enter();
   }
-  checkCollisions() {
+  checkCollisions(deltaTime) {
+    this.game.powerUps.forEach((powerUp) => {
+      if (
+        powerUp.x < this.x + this.width &&
+        powerUp.x + powerUp.width > this.x &&
+        powerUp.y < this.y + this.height &&
+        powerUp.y + powerUp.height > this.y
+      ) {
+        // power up
+        powerUp.markedForDeletion = true;
+        this.setState(7, 2);
+      }
+    });
     this.game.enemies.forEach((enemy) => {
       if (
         enemy.x < this.x + this.width &&
@@ -101,7 +117,12 @@ class Player {
         this.game.collisions.push(
           new CollisionAnimation(this.game, enemy.x + enemy.width * 0.5, enemy.y + enemy.height * 0.5)
         );
-        if (this.#isRolling()) {
+        if (enemy.isPoweredUp) {
+          setTimeout(() => {
+            this.game.powerUps.push(new PowerUp(this.game, enemy.x, enemy.y + enemy.height * 0.25));
+          }, 200);
+        }
+        if (this.#isRolling() || this.isEmpowered()) {
           this.game.score++;
           this.game.floatingMessages.push(new FloatingMessages("+1", enemy.x, enemy.y, 150, 50));
         } else if (this.#isDiving()) {
@@ -131,7 +152,10 @@ class Player {
     return this.game.width - this.width;
   }
   #isRolling() {
-    return this.currentState === this.states[4]; //|| this.currentState === this.states[5];
+    return this.currentState === this.states[4] || this.currentState === this.states[5];
+  }
+  isEmpowered() {
+    return this.currentState === this.states[7];
   }
   #isDiving() {
     return this.currentState === this.states[5];
