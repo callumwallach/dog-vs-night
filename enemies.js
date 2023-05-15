@@ -8,10 +8,13 @@ class Enemy {
     this.frameTimer = 0;
     this.markedForDeletion = false;
     this.isPoweredUp = Math.random() > 0.33;
+    this.health = 10;
+    this.points = 10;
   }
   update(deltaTime) {
     // movement
     this.x -= this.speedX + this.game.speed;
+    //console.log(this.x, this.speedX, this.game.speed);
     this.y += this.speedY;
     if (this.frameTimer > this.frameInterval) {
       this.frameX = this.frameX < this.maxFrame ? this.frameX + 1 : 0;
@@ -24,8 +27,10 @@ class Enemy {
   }
   draw(context) {
     if (this.game.debug) {
+      context.lineWidth = 2;
       context.strokeStyle = "white";
-      context.strokeRect(this.x, this.y, this.width, this.height);
+      const hitBox = this.getHitBox();
+      context.strokeRect(hitBox.x, hitBox.y, hitBox.width, hitBox.height);
     }
     context.drawImage(
       this.image,
@@ -38,6 +43,15 @@ class Enemy {
       this.width,
       this.height
     );
+  }
+  getPoints() {
+    return this.points;
+  }
+  getHealth() {
+    return this.health;
+  }
+  damageHealth() {
+    return (this.health -= 10);
   }
   getStageRight() {
     return this.game.width;
@@ -60,6 +74,9 @@ class Enemy {
   getGroundMin() {
     return this.game.height - this.height - this.game.groundMargin;
   }
+  getHitBox() {
+    return { x: this.x, y: this.y, width: this.width, height: this.height };
+  }
 }
 
 class FlyingEnemy extends Enemy {
@@ -75,6 +92,7 @@ class FlyingEnemy extends Enemy {
     this.image = document.getElementById("enemyFly");
     this.angle = 0;
     this.va = Math.random() * 0.1 + 0.1;
+    this.points = 20;
   }
   update(deltaTime) {
     super.update(deltaTime);
@@ -94,11 +112,13 @@ class GroundEnemy extends Enemy {
     this.speedY = 0;
     this.maxFrame = 1;
     this.image = document.getElementById("enemyPlant");
+    this.points = 10;
   }
   update(deltaTime) {
     super.update(deltaTime);
   }
 }
+
 class ClimbingEnemy extends Enemy {
   constructor(game) {
     super(game);
@@ -110,6 +130,7 @@ class ClimbingEnemy extends Enemy {
     this.speedY = Math.random() > 0.5 ? 1 : -1;
     this.maxFrame = 5;
     this.image = document.getElementById("enemySpider");
+    this.points = 50;
   }
   update(deltaTime) {
     super.update(deltaTime);
@@ -125,4 +146,4 @@ class ClimbingEnemy extends Enemy {
   }
 }
 
-export { FlyingEnemy, GroundEnemy, ClimbingEnemy };
+export { FlyingEnemy, GroundEnemy, ClimbingEnemy, Enemy };

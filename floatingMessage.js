@@ -1,10 +1,11 @@
 class FloatingMessages {
-  constructor(value, x, y, targetX, targetY) {
+  constructor(value, x, y, targetX, targetY, size = 20) {
     this.value = value;
     this.x = x;
     this.y = y;
     this.targetX = targetX;
     this.targetY = targetY;
+    this.size = size;
     this.markedForDeletion = false;
     this.timer = 0;
   }
@@ -15,7 +16,7 @@ class FloatingMessages {
     if (this.timer > 100) this.markedForDeletion = true;
   }
   draw(context) {
-    context.font = "20px Creepster";
+    context.font = this.size + "px Creepster";
     context.fillStyle = "white";
     context.fillText(this.value, this.x, this.y);
     context.fillStyle = "black";

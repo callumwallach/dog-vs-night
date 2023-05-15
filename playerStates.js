@@ -1,5 +1,11 @@
 import { Dust, Fire, Splash } from "./particle.js";
-import { MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, ENTER } from "./constants.js";
+import {
+  MOVE_LEFT,
+  MOVE_RIGHT,
+  MOVE_UP,
+  MOVE_DOWN,
+  ENTER,
+} from "./constants.js";
 
 const SITTING = "SITTING";
 const RUNNING = "RUNNING";
@@ -17,6 +23,8 @@ const states = {
   ROLLING: 4,
   DIVING: 5,
   HIT: 6,
+  EMPOWERED: 7,
+  KNOCKED: 8,
 };
 
 class State {
@@ -48,71 +56,88 @@ class State {
 
 class Sitting extends State {
   constructor(game, appearance) {
-    super(SITTING, game, 6, 5, appearance);
+    //super(SITTING, game, 6, 5, appearance);
+    super(SITTING, game, 6, 8, appearance);
   }
   enter() {
     super.enter();
     this.game.player.speed = 0;
   }
   handleInput(input) {
-    if (input.includes([MOVE_LEFT, MOVE_RIGHT])) this.game.player.setState(states.RUNNING, 1);
+    if (input.includes([MOVE_UP])) this.game.player.setState(states.JUMPING, 1);
+    if (input.includes([MOVE_LEFT, MOVE_RIGHT]))
+      this.game.player.setState(states.RUNNING, 1);
     if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
   }
 }
 
 class Running extends State {
   constructor(game, appearance) {
-    super(RUNNING, game, 4, 9, appearance);
+    //super(RUNNING, game, 4, 9, appearance);
+    super(RUNNING, game, 4, 4, appearance);
   }
   enter() {
     super.enter();
   }
   handleInput(input) {
-    this.game.particles.unshift(
-      new Dust(
-        this.game,
-        this.game.player.x + this.game.player.width * 0.6,
-        this.game.player.y + this.game.player.height
-      )
-    );
-    if (input.includes([MOVE_DOWN])) this.game.player.setState(states.SITTING, 0);
-    if (input.includes([MOVE_UP])) this.game.player.setState(states.JUMPING, 1);
-    if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
+    if (this.game.bossStage && input.keys.length === 0) {
+      this.game.player.setState(states.SITTING, 0);
+    } else {
+      this.game.particles.unshift(
+        new Dust(
+          this.game,
+          this.game.player.x + this.game.player.width * 0.6,
+          this.game.player.y + this.game.player.height
+        )
+      );
+      if (input.includes([MOVE_DOWN]))
+        this.game.player.setState(states.SITTING, 0);
+      if (input.includes([MOVE_UP]))
+        this.game.player.setState(states.JUMPING, 1);
+      if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
+    }
   }
 }
 
 class Jumping extends State {
   constructor(game, appearance) {
-    super(JUMPING, game, 2, 7, appearance);
+    //super(JUMPING, game, 2, 7, appearance);
+    super(JUMPING, game, 2, 2, appearance);
   }
   enter() {
     super.enter();
-    if (this.game.player.isOnGround()) this.game.player.vy -= this.game.player.jumpMax;
+    if (this.game.player.isOnGround())
+      this.game.player.vy -= this.game.player.jumpMax;
   }
   handleInput(input) {
     // if down arc of jump set to falling
     if (this.game.player.vy > 0) this.game.player.setState(states.FALLING, 1);
     if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
-    if (input.includes([MOVE_DOWN])) this.game.player.setState(states.DIVING, 0);
+    if (input.includes([MOVE_DOWN]))
+      this.game.player.setState(states.DIVING, 0);
   }
 }
 
 class Falling extends State {
   constructor(game, appearance) {
-    super(FALLING, game, 3, 7, appearance);
+    //super(FALLING, game, 3, 7, appearance);
+    super(FALLING, game, 3, 2, appearance);
   }
   enter() {
     super.enter();
   }
   handleInput(input) {
-    if (this.game.player.isOnGround()) this.game.player.setState(states.RUNNING, 1);
-    if (input.includes([MOVE_DOWN])) this.game.player.setState(states.DIVING, 0);
+    if (this.game.player.isOnGround())
+      this.game.player.setState(states.RUNNING, 1);
+    if (input.includes([MOVE_DOWN]))
+      this.game.player.setState(states.DIVING, 0);
   }
 }
 
 class Rolling extends State {
   constructor(game, appearance) {
-    super(ROLLING, game, 7, 7, appearance);
+    //super(ROLLING, game, 7, 7, appearance);
+    super(ROLLING, game, 7, 3, appearance);
   }
   enter() {
     super.enter();
@@ -126,26 +151,33 @@ class Rolling extends State {
       )
     );
     if (!input.includes([ENTER])) {
-      if (this.game.player.isOnGround()) this.game.player.setState(states.RUNNING, 1);
+      if (this.game.player.isOnGround())
+        this.game.player.setState(states.RUNNING, 1);
       else this.game.player.setState(states.FALLING, 1);
     }
-    if (input.includes([MOVE_UP]) && this.game.player.isOnGround()) this.game.player.vy -= this.game.player.jumpMax;
-    if (input.includes([MOVE_DOWN]) && !this.game.player.isOnGround()) this.game.player.setState(states.DIVING, 0);
+    if (input.includes([MOVE_UP]) && this.game.player.isOnGround())
+      this.game.player.vy -= this.game.player.jumpMax;
+    if (input.includes([MOVE_DOWN]) && !this.game.player.isOnGround())
+      this.game.player.setState(states.DIVING, 0);
   }
 }
 
 class Empowered extends State {
   constructor(game, appearance) {
-    super(ROLLING, game, 7, 7, appearance);
+    //super(ROLLING, game, 7, 7, appearance);
+    super(ROLLING, game, 7, 3, appearance);
   }
   enter() {
     super.enter();
     this.empowered = true;
+    this.timer = 1500;
     setTimeout(() => {
       this.empowered = false;
     }, 10000);
   }
   handleInput(input) {
+    //this.timer = this.timer > 0 ? this.timer - 1 : 0;
+    //if (this.timer <= 0) this.empowered = false;
     this.game.particles.unshift(
       new Fire(
         this.game,
@@ -154,17 +186,21 @@ class Empowered extends State {
       )
     );
     if (!this.empowered) {
-      if (this.game.player.isOnGround()) this.game.player.setState(states.RUNNING, 1);
+      if (this.game.player.isOnGround())
+        this.game.player.setState(states.RUNNING, 1);
       else this.game.player.setState(states.FALLING, 1);
     }
-    if (input.includes([MOVE_UP]) && this.game.player.isOnGround()) this.game.player.vy -= this.game.player.jumpMax;
-    if (input.includes([MOVE_DOWN]) && !this.game.player.isOnGround()) this.game.player.setState(states.DIVING, 0);
+    if (input.includes([MOVE_UP]) && this.game.player.isOnGround())
+      this.game.player.vy -= this.game.player.jumpMax;
+    if (input.includes([MOVE_DOWN]) && !this.game.player.isOnGround())
+      this.game.player.setState(states.DIVING, 0);
   }
 }
 
 class Diving extends State {
   constructor(game, appearance) {
-    super(DIVING, game, 7, 7, appearance);
+    //super(DIVING, game, 7, 7, appearance);
+    super(DIVING, game, 7, 3, appearance);
   }
   enter() {
     super.enter();
@@ -190,7 +226,8 @@ class Diving extends State {
         );
       }
     }
-    if (input.includes([ENTER]) && this.game.player.isOnGround()) this.game.player.setState(states.ROLLING, 2);
+    if (input.includes([ENTER]) && this.game.player.isOnGround())
+      this.game.player.setState(states.ROLLING, 2);
   }
 }
 
@@ -202,14 +239,55 @@ class Hit extends State {
     super.enter();
   }
   handleInput(input) {
-    if (!this.#isHit()) {
-      if (this.game.player.isOnGround()) this.game.player.setState(states.RUNNING, 1);
-      if (!this.game.player.isOnGround()) this.game.player.setState(states.FALLING, 1);
+    if (!this.isHit()) {
+      if (this.game.player.isOnGround())
+        this.game.player.setState(states.RUNNING, 1);
+      if (!this.game.player.isOnGround())
+        this.game.player.setState(states.FALLING, 1);
     }
   }
-  #isHit() {
+  isHit() {
     return this.game.player.frameX < 10;
   }
 }
 
-export { Sitting, Running, Jumping, Falling, Rolling, Diving, Hit, Empowered };
+class KnockedBack extends State {
+  constructor(game, appearance) {
+    super(HIT, game, 5, 11, appearance);
+  }
+  enter() {
+    super.enter();
+    this.game.player.vx = this.game.player.knockBackMaxX;
+    this.game.player.vy = -this.game.player.knockBackMaxY;
+    // console.log(
+    //   this.game.player.x,
+    //   this.game.player.vx,
+    //   this.game.player.y,
+    //   this.game.player.vy
+    // );
+  }
+  handleInput(input) {
+    if (!this.isKnockedBack()) {
+      if (this.game.player.isOnGround())
+        this.game.player.setState(states.RUNNING, 1);
+      if (!this.game.player.isOnGround())
+        this.game.player.setState(states.FALLING, 1);
+    }
+  }
+  isKnockedBack() {
+    return this.game.player.frameX < 10;
+  }
+}
+
+export {
+  states,
+  Sitting,
+  Running,
+  Jumping,
+  Falling,
+  Rolling,
+  Diving,
+  Hit,
+  Empowered,
+  KnockedBack,
+};
