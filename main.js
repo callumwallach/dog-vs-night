@@ -1,5 +1,5 @@
 import UI from "./UI.js";
-import Loading from "./Loading.js";
+import Loading from "./loading.js";
 import Player from "./player.js";
 import InputHandler from "./input.js";
 import Background from "./background.js";
