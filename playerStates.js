@@ -170,10 +170,15 @@ class Empowered extends State {
   enter() {
     super.enter();
     this.empowered = true;
-    this.timer = 1500;
-    setTimeout(() => {
-      this.empowered = false;
-    }, 10000);
+    const EMPOWERED_TIME = 10 * 1000;
+    this.game.player.empoweredTimer = EMPOWERED_TIME;
+    // setTimeout(() => {
+    //     console.log("removing empower");
+    //     this.empowered = false;
+    // }, EMPOWERED_TIME);
+  }
+  exit() {
+    this.empowered = false;
   }
   handleInput(input) {
     //this.timer = this.timer > 0 ? this.timer - 1 : 0;

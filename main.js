@@ -14,7 +14,7 @@ window.addEventListener("load", () => {
   const maxLives = 5;
   const maxTime = 3 * 60 * 1000;
   const enemyInterval = 2 * 1000;
-  const bossInterval = 60 * 1000;
+  const bossInterval = 1 * 60 * 1000;
   const fullScreenButton = document.getElementById("fullScreenButton");
 
   class Game {
@@ -32,11 +32,12 @@ window.addEventListener("load", () => {
       this.loading = new Loading(this);
       this.isLoading = true;
       this.enemies = [];
+      this.projectiles = [];
       this.particles = [];
       this.collisions = [];
       this.powerUps = [];
       this.floatingMessages = [];
-      this.maxParticles = 25;
+      this.maxParticles = 50;
       this.enemyTimer = 0;
       this.enemyInterval = enemyInterval;
       this.bossInterval = bossInterval;
@@ -72,9 +73,13 @@ window.addEventListener("load", () => {
       if (!this.bossStage && this.time > this.bossInterval) {
         this.addBoss();
       }
-      this.enemies.forEach((enemy, index) => enemy.update(deltaTime));
+      this.enemies.forEach((enemy, index) => {
+        enemy.update(deltaTime);
+      });
       // handle messages
       this.floatingMessages.forEach((message) => message.update());
+      // handle projectiles
+      this.projectiles.forEach((projectile) => projectile.update());
       // handle particles
       this.particles.forEach((particle, index) => particle.update());
       this.particles.length = Math.min(
@@ -92,6 +97,9 @@ window.addEventListener("load", () => {
         (powerUp) => !powerUp.markedForDeletion
       );
       this.enemies = this.enemies.filter((enemy) => !enemy.markedForDeletion);
+      this.projectiles = this.projectiles.filter(
+        (projectile) => !projectile.markedForDeletion
+      );
       this.particles = this.particles.filter(
         (particle) => !particle.markedForDeletion
       );
@@ -108,6 +116,7 @@ window.addEventListener("load", () => {
       this.powerUps.forEach((powerUp) => powerUp.draw(context));
       this.player.draw(context);
       this.enemies.forEach((enemy) => enemy.draw(context));
+      this.projectiles.forEach((projectile) => projectile.draw(context));
       this.particles.forEach((particle) => particle.draw(context));
       this.collisions.forEach((collision) => collision.draw(context));
       this.floatingMessages.forEach((message) => message.draw(context));
@@ -134,6 +143,7 @@ window.addEventListener("load", () => {
       this.UI = new UI(this);
       this.loading = new Loading(this);
       this.enemies = [];
+      this.projectiles = [];
       this.particles = [];
       this.collisions = [];
       this.powerUps = [];

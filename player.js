@@ -61,7 +61,7 @@ class Player {
     this.currentState = null;
     this.knockBackMaxX = 30;
     this.knockBackMaxY = 15;
-    this.powerUpTimer = 0;
+    this.empoweredTimer = 0;
   }
   update(input, deltaTime) {
     //console.log(this.currentState.constructor.name);
@@ -99,6 +99,11 @@ class Player {
     } else {
       this.frameTimer += deltaTime;
     }
+    // empowered
+    this.empoweredTimer -= deltaTime;
+    this.empoweredTimer = Math.max(0, this.empoweredTimer);
+    if (this.empoweredTimer === 0 && this.isEmpowered())
+      this.currentState.exit();
   }
   draw(context) {
     if (this.game.debug) {
@@ -186,6 +191,30 @@ class Player {
         this.setState(PLAYER_STATES.EMPOWERED, 2);
       }
     });
+    this.game.projectiles.forEach((projectile) => {
+      const projectileHitBox = projectile.getHitBox();
+      if (
+        projectileHitBox.x < this.x + this.width &&
+        projectileHitBox.x + projectileHitBox.width > this.x &&
+        projectileHitBox.y < this.y + this.height &&
+        projectileHitBox.y + projectileHitBox.height > this.y
+      ) {
+        projectile.markedForDeletion = true;
+        this.setState(PLAYER_STATES.HIT, 0);
+        this.game.score -= 5;
+        this.game.floatingMessages.push(
+          new FloatingMessages(
+            "-5",
+            projectileHitBox.x,
+            projectileHitBox.y,
+            150,
+            50
+          )
+        );
+        this.game.lives--;
+        if (this.game.lives <= 0) this.game.gameOver = true;
+      }
+    });
     this.game.enemies.forEach((enemy) => {
       // if (
       //   enemy.x < this.x + this.width &&
@@ -203,98 +232,91 @@ class Player {
         const enemyHealth = enemy.damageHealth();
 
         if (enemy.constructor.name === "BossEnemy") {
-          // if dead, animate death
-          if (enemyHealth <= 0 && !enemy.dead) {
-            enemy.death();
-            // enemy.markedForDeletion = true;
-            // this.game.collisions.push(
-            //   new CollisionAnimation(
-            //     this.game,
-            //     enemyHitBox.x + enemyHitBox.width * 0.5,
-            //     enemyHitBox.y + enemyHitBox.height * 0.5
-            //   )
-            // );
-            const points = 1000;
-            this.game.score += points;
-            //setTimeout(() => {
-            this.game.floatingMessages.push(
-              new FloatingMessages(
-                `+${points}`,
-                enemyHitBox.x,
-                enemyHitBox.y,
-                150,
-                50,
-                45
-              )
-            );
-            //}, 1000);
-          } else {
-            if (this.#isRolling() || this.isEmpowered()) {
-              const points = Math.floor(Math.random() * 25 + 1);
-              this.game.score += points;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  `+${points}`,
-                  enemyHitBox.x,
-                  enemyHitBox.y,
-                  150,
-                  50,
-                  35
-                )
-              );
-            } else if (this.#isDiving()) {
-              const points = this.#isLanding() ? 50 : 100;
-              this.game.score += points;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  `+${points}`,
-                  enemyHitBox.x,
-                  enemyHitBox.y,
-                  150,
-                  50,
-                  35
-                )
-              );
-            } else {
-              this.setState(PLAYER_STATES.HIT, 0);
-              this.game.score -= 5;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  "-5",
-                  enemyHitBox.x,
-                  enemyHitBox.y,
-                  150,
-                  50,
-                  35
-                )
-              );
-              this.game.lives--;
-              if (this.game.lives <= 0) this.game.gameOver = true;
-            }
+          if (!enemy.isDying) {
+            if (!enemy.dead) {
+              if (enemyHealth <= 0) {
+                enemy.death();
+                const points = 1000;
+                this.game.score += points;
+                this.game.floatingMessages.push(
+                  new FloatingMessages(
+                    `+${points}`,
+                    enemyHitBox.x,
+                    enemyHitBox.y,
+                    150,
+                    50,
+                    45
+                  )
+                );
+              } else {
+                if (this.#isRolling() || this.isEmpowered()) {
+                  const points = Math.floor(Math.random() * 25 + 1);
+                  this.game.score += points;
+                  this.game.floatingMessages.push(
+                    new FloatingMessages(
+                      `+${points}`,
+                      enemyHitBox.x,
+                      enemyHitBox.y,
+                      150,
+                      50,
+                      35
+                    )
+                  );
+                } else if (this.#isDiving()) {
+                  const points = this.#isLanding() ? 50 : 100;
+                  this.game.score += points;
+                  this.game.floatingMessages.push(
+                    new FloatingMessages(
+                      `+${points}`,
+                      enemyHitBox.x,
+                      enemyHitBox.y,
+                      150,
+                      50,
+                      35
+                    )
+                  );
+                } else {
+                  this.setState(PLAYER_STATES.HIT, 0);
+                  this.game.score -= 5;
+                  this.game.floatingMessages.push(
+                    new FloatingMessages(
+                      "-5",
+                      enemyHitBox.x,
+                      enemyHitBox.y,
+                      150,
+                      50,
+                      35
+                    )
+                  );
+                  this.game.lives--;
+                  if (this.game.lives <= 0) this.game.gameOver = true;
+                }
 
-            if (enemyHealth % (enemy.maxHealth / 5) === 0) {
-              const points = Math.floor(Math.random() * 100 + 1);
-              this.game.score += points;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  `+${points}`,
-                  this.x,
-                  this.y - 50,
-                  150,
-                  50,
-                  45
-                )
-              );
-              this.game.powerUps.push(
-                new PowerUp(
-                  this.game,
-                  enemyHitBox.x - Math.random() * 500,
-                  enemyHitBox.y + Math.random() * enemyHitBox.height
-                )
-              );
+                if (enemyHealth % (enemy.maxHealth / 5) === 0) {
+                  const points = Math.floor(Math.random() * 100 + 1);
+                  this.game.score += points;
+                  this.game.floatingMessages.push(
+                    new FloatingMessages(
+                      `+${points}`,
+                      this.x,
+                      this.y - 50,
+                      150,
+                      50,
+                      45
+                    )
+                  );
+                  this.game.powerUps.push(
+                    new PowerUp(
+                      this.game,
+                      enemyHitBox.x - Math.random() * 500,
+                      enemyHitBox.y + Math.random() * enemyHitBox.height
+                    )
+                  );
+                }
+                this.vx = this.knockBackMaxX;
+                this.vy = -this.knockBackMaxY;
+              }
             }
-            this.vx = this.knockBackMaxX;
-            this.vy = -this.knockBackMaxY;
           }
         } else {
           if (enemyHealth <= 0) {

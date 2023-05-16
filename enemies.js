@@ -10,6 +10,7 @@ class Enemy {
     this.isPoweredUp = Math.random() > 0.33;
     this.health = 10;
     this.points = 10;
+    this.offsetY = 0;
   }
   update(deltaTime) {
     // movement

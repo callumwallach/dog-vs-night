@@ -4,7 +4,7 @@ class UI {
     this.fontSize = 30;
     this.fontFamily = "Creepster";
     this.livesImage = document.getElementById("lives");
-    this.fireImage = document.getElementById("fire");
+    this.fireImage = document.getElementById("fireBar");
   }
   update() {}
   draw(context) {
@@ -27,7 +27,34 @@ class UI {
     }
     // empowered
     if (this.game.player.isEmpowered()) {
-      context.drawImage(this.fireImage, 10, 115, 45, 45);
+      // context.font = `${this.fontSize * 0.8}px ${this.fontFamily}`;
+      // context.fillText(
+      //   `Power: ${(this.game.player.empoweredTimer * 0.001).toFixed(1)}`,
+      //   20,
+      //   140
+      // );
+      //context.drawImage(this.fireImage, 10, 115, 45, 45);
+      context.save();
+      const barWidth = 100;
+      const barHeight = 13;
+      context.shadowOffsetX = 0;
+      context.shadowOffsetY = 0;
+      context.shadowColor = "white";
+      context.shadowBlur = 0;
+      context.lineWidth = 2;
+      context.strokeRect(20, 135, barWidth, barHeight);
+      context.fillStyle = "rgba(0, 0, 0, 0.5)";
+      context.fillRect(20, 135, barWidth - 2, barHeight - 2);
+      const pattern = context.createPattern(this.fireImage, "repeat");
+      //context.drawImage(this.fireImage, 20, 140, 200, 45);
+      context.fillStyle = pattern;
+      context.fillRect(
+        20,
+        135,
+        this.game.player.empoweredTimer / 100,
+        barHeight
+      );
+      context.restore();
     }
     // boss
     if (this.game.bossStage && this.game.boss.getHealth() > 0) {
@@ -93,10 +120,11 @@ class UI {
           this.game.height * 0.5 + 60
         );
       } else {
-        const message = playerWon
-          ? `What are the creatures of the night afraid of? YOU!!!`
-          : `Better luck next time!`;
-        context.font = `${this.fontSize * 0.8}px ${this.fontFamily}`;
+        // const message = playerWon
+        //   ? `What are the creatures of the night afraid of? YOU!!!`
+        //   : `Better luck next time!`;
+        const message = `You tried, but you're still 50...`;
+        context.font = `${this.fontSize * 1}px ${this.fontFamily}`;
         context.fillText(
           message,
           this.game.width * 0.5,
