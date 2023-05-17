@@ -41,7 +41,7 @@ export default {
         h: 348,
       },
     },
-    MAGIC: {
+    THREATEN: {
       frame: {
         x: 1,
         y: 703,

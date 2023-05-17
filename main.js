@@ -5,6 +5,12 @@ import InputHandler from "./input.js";
 import Background from "./background.js";
 import { FlyingEnemy, GroundEnemy, ClimbingEnemy } from "./enemies.js";
 import BossEnemy from "./boss.js";
+import FloatingMessages from "./floatingMessage.js";
+import PowerUp from "./powerUp.js";
+import {
+  CollisionAnimation,
+  ExplosionAnimation,
+} from "./collisionAnimation.js";
 
 window.addEventListener("load", () => {
   const canvas = document.getElementById("canvas1");
@@ -12,9 +18,13 @@ window.addEventListener("load", () => {
   canvas.width = 1200;
   canvas.height = 500;
   const maxLives = 5;
+  let newGame = true;
+  let lastTime = 0;
+  let animationRequest;
   const maxTime = 3 * 60 * 1000;
   const enemyInterval = 2 * 1000;
   const bossInterval = 1 * 60 * 1000;
+  const bossMaxHealth = 250;
   const fullScreenButton = document.getElementById("fullScreenButton");
 
   class Game {
@@ -23,38 +33,17 @@ window.addEventListener("load", () => {
       this.width = width;
       this.height = height;
       this.groundMargin = 40;
-      this.speed = 0;
-      this.maxSpeed = 4;
-      this.player = new Player(this);
-      this.input = new InputHandler(this);
-      this.background = new Background(this);
-      this.UI = new UI(this);
-      this.loading = new Loading(this);
       this.isLoading = true;
-      this.enemies = [];
-      this.projectiles = [];
-      this.particles = [];
-      this.collisions = [];
-      this.powerUps = [];
-      this.floatingMessages = [];
       this.maxParticles = 50;
-      this.enemyTimer = 0;
       this.enemyInterval = enemyInterval;
       this.bossInterval = bossInterval;
-      this.bossStage = false;
-      this.boss = null;
-      this.score = 0;
-      this.winningScore = 40;
+      this.bossMaxHealth = bossMaxHealth;
       this.fontColor = "black";
-      this.time = 0;
       this.maxTime = maxTime;
-      this.gameOver = false;
-      this.success = false;
-      this.lives = maxLives;
-      this.player.currentState = this.player.states[0];
-      this.player.currentState.enter();
+      this.init();
     }
     update(deltaTime) {
+      //console.log("running", this.time, deltaTime);
       this.time += deltaTime;
       if (this.bossStage) {
         this.speed = 0;
@@ -131,10 +120,36 @@ window.addEventListener("load", () => {
     }
     addBoss() {
       this.bossStage = true;
-      this.boss = new BossEnemy(this);
+      this.boss = new BossEnemy(this, this.bossMaxHealth);
       this.enemies.push(this.boss);
     }
-    restartGame() {
+    addPoints(points, x, y, size = 20) {
+      this.score += points;
+      this.floatingMessages.push(
+        new FloatingMessages(
+          `${points > 0 ? "+" : ""}${points}`,
+          x,
+          y,
+          150,
+          50,
+          size
+        )
+      );
+    }
+    addCollision(x, y) {
+      this.collisions.push(new CollisionAnimation(this, x, y));
+    }
+    addExplosion(x, y) {
+      this.collisions.push(new ExplosionAnimation(this, x, y));
+    }
+    addPowerUpGem(x, y) {
+      this.powerUps.push(new PowerUp(this, x, y));
+    }
+    loseLife() {
+      this.lives--;
+      if (this.lives <= 0) this.gameOver = true;
+    }
+    init() {
       this.speed = 0;
       this.maxSpeed = 4;
       this.player = new Player(this);
@@ -158,7 +173,14 @@ window.addEventListener("load", () => {
       this.lives = maxLives;
       this.player.currentState = this.player.states[0];
       this.player.currentState.enter();
-      animate(0);
+    }
+    startNewGame() {
+      cancelAnimationFrame(animationRequest);
+      newGame = true;
+      this.init();
+      // const audioObj = new Audio("/assets/background.mp3");
+      // audioObj.play();
+      animationRequest = requestAnimationFrame(animate);
     }
   }
 
@@ -177,14 +199,17 @@ window.addEventListener("load", () => {
 
   const game = new Game(canvas.width, canvas.height);
 
-  let lastTime = 0;
   function animate(timeStamp) {
-    const deltaTime = timeStamp - lastTime;
+    let deltaTime = timeStamp - lastTime;
+    if (newGame) {
+      deltaTime = 0;
+      newGame = false;
+    }
     lastTime = timeStamp;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     game.update(deltaTime);
     game.draw(ctx);
-    if (!game.gameOver) requestAnimationFrame(animate);
+    if (!game.gameOver) animationRequest = requestAnimationFrame(animate);
   }
 
   function run() {
@@ -194,7 +219,7 @@ window.addEventListener("load", () => {
     window.addEventListener(
       "keydown",
       (e) => {
-        animate(0);
+        game.startNewGame();
       },
       { once: true }
     );

@@ -11,12 +11,8 @@ import {
   Empowered,
   KnockedBack,
 } from "./playerStates.js";
-import CollisionAnimation from "./collisionAnimation.js";
 import { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT } from "./constants.js";
-import FloatingMessages from "./floatingMessage.js";
-//import appearance from "./assets/boy.json" assert { type: "json" };
 import appearance from "./assets/boy.js";
-import PowerUp from "./powerUp.js";
 
 const RECT = 0;
 const ELLIPSE = 1;
@@ -64,8 +60,6 @@ class Player {
     this.empoweredTimer = 0;
   }
   update(input, deltaTime) {
-    //console.log(this.currentState.constructor.name);
-    //console.log(input.keys);
     this.checkCollisions(deltaTime);
     this.currentState.handleInput(input);
     // horizontal speed
@@ -81,6 +75,14 @@ class Player {
       } else {
         this.speed = 0;
       }
+      // console.log(
+      //   "speed",
+      //   this.speed,
+      //   "game speed",
+      //   this.game.speed,
+      //   "max game speed",
+      //   this.game.maxSpeed
+      // );
     }
     // horizontal boundaries
     if (this.x < this.#getStageLeft()) this.x = this.#getStageLeft();
@@ -110,7 +112,7 @@ class Player {
       context.lineWidth = 2;
       context.strokeStyle = "white";
       context.beginPath();
-      const rectHitBox = this.#getRectHitBox();
+      const rectHitBox = this.getHitBox();
       context.rect(
         rectHitBox.x,
         rectHitBox.y,
@@ -186,204 +188,99 @@ class Player {
         powerUp.y < this.y + this.height &&
         powerUp.y + powerUp.height > this.y
       ) {
-        // power up
         powerUp.markedForDeletion = true;
         this.setState(PLAYER_STATES.EMPOWERED, 2);
       }
     });
     this.game.projectiles.forEach((projectile) => {
-      const projectileHitBox = projectile.getHitBox();
+      const hitBox = projectile.getHitBox();
       if (
-        projectileHitBox.x < this.x + this.width &&
-        projectileHitBox.x + projectileHitBox.width > this.x &&
-        projectileHitBox.y < this.y + this.height &&
-        projectileHitBox.y + projectileHitBox.height > this.y
+        hitBox.x < this.x + this.width &&
+        hitBox.x + hitBox.width > this.x &&
+        hitBox.y < this.y + this.height &&
+        hitBox.y + hitBox.height > this.y
       ) {
         projectile.markedForDeletion = true;
         this.setState(PLAYER_STATES.HIT, 0);
-        this.game.score -= 5;
-        this.game.floatingMessages.push(
-          new FloatingMessages(
-            "-5",
-            projectileHitBox.x,
-            projectileHitBox.y,
-            150,
-            50
-          )
-        );
-        this.game.lives--;
-        if (this.game.lives <= 0) this.game.gameOver = true;
+        this.game.addPoints(-5, hitBox.x, hitBox.y);
+        this.game.loseLife();
       }
     });
-    this.game.enemies.forEach((enemy) => {
-      // if (
-      //   enemy.x < this.x + this.width &&
-      //   enemy.x + enemy.width > this.x &&
-      //   enemy.y < this.y + this.height &&
-      //   enemy.y + enemy.height > this.y
-      // )
-      const enemyHitBox = enemy.getHitBox();
+    for (let i = 0; i < this.game.enemies.length; i++) {
+      const enemy = this.game.enemies[i];
+      const hitBox = enemy.getHitBox();
       if (
-        enemyHitBox.x < this.x + this.width &&
-        enemyHitBox.x + enemyHitBox.width > this.x &&
-        enemyHitBox.y < this.y + this.height &&
-        enemyHitBox.y + enemyHitBox.height > this.y
+        hitBox.x < this.x + this.width &&
+        hitBox.x + hitBox.width > this.x &&
+        hitBox.y < this.y + this.height &&
+        hitBox.y + hitBox.height > this.y
       ) {
-        const enemyHealth = enemy.damageHealth();
-
+        const health = enemy.damageHealth();
         if (enemy.constructor.name === "BossEnemy") {
-          if (!enemy.isDying) {
-            if (!enemy.dead) {
-              if (enemyHealth <= 0) {
-                enemy.death();
-                const points = 1000;
-                this.game.score += points;
-                this.game.floatingMessages.push(
-                  new FloatingMessages(
-                    `+${points}`,
-                    enemyHitBox.x,
-                    enemyHitBox.y,
-                    150,
-                    50,
-                    45
-                  )
-                );
-              } else {
-                if (this.#isRolling() || this.isEmpowered()) {
-                  const points = Math.floor(Math.random() * 25 + 1);
-                  this.game.score += points;
-                  this.game.floatingMessages.push(
-                    new FloatingMessages(
-                      `+${points}`,
-                      enemyHitBox.x,
-                      enemyHitBox.y,
-                      150,
-                      50,
-                      35
-                    )
-                  );
-                } else if (this.#isDiving()) {
-                  const points = this.#isLanding() ? 50 : 100;
-                  this.game.score += points;
-                  this.game.floatingMessages.push(
-                    new FloatingMessages(
-                      `+${points}`,
-                      enemyHitBox.x,
-                      enemyHitBox.y,
-                      150,
-                      50,
-                      35
-                    )
-                  );
-                } else {
-                  this.setState(PLAYER_STATES.HIT, 0);
-                  this.game.score -= 5;
-                  this.game.floatingMessages.push(
-                    new FloatingMessages(
-                      "-5",
-                      enemyHitBox.x,
-                      enemyHitBox.y,
-                      150,
-                      50,
-                      35
-                    )
-                  );
-                  this.game.lives--;
-                  if (this.game.lives <= 0) this.game.gameOver = true;
-                }
-
-                if (enemyHealth % (enemy.maxHealth / 5) === 0) {
-                  const points = Math.floor(Math.random() * 100 + 1);
-                  this.game.score += points;
-                  this.game.floatingMessages.push(
-                    new FloatingMessages(
-                      `+${points}`,
-                      this.x,
-                      this.y - 50,
-                      150,
-                      50,
-                      45
-                    )
-                  );
-                  this.game.powerUps.push(
-                    new PowerUp(
-                      this.game,
-                      enemyHitBox.x - Math.random() * 500,
-                      enemyHitBox.y + Math.random() * enemyHitBox.height
-                    )
-                  );
-                }
-                this.vx = this.knockBackMaxX;
-                this.vy = -this.knockBackMaxY;
+          if (!enemy.isDying()) {
+            this.game.addCollision(
+              hitBox.x + hitBox.width * 0.5,
+              hitBox.y + hitBox.height * 0.5
+            );
+            if (health <= 0) {
+              enemy.setDying();
+              if (health === 0) {
+                this.game.addPoints(1000, hitBox.x, hitBox.y, 45);
               }
+            } else {
+              if (this.#isDiving()) {
+                const points = this.#isLanding() ? 50 : 100;
+                this.game.addPoints(points, hitBox.x, hitBox.y, 35);
+              } else if (this.#isRolling() || this.isEmpowered()) {
+                const points = Math.floor(Math.random() * 25 + 1);
+                this.game.addPoints(points, hitBox.x, hitBox.y, 35);
+              } else {
+                this.setState(PLAYER_STATES.HIT, 0);
+                this.game.addPoints(-5, this.x, this.y - 25, 35);
+                this.game.loseLife();
+              }
+              if (health % (enemy.maxHealth / 5) === 0) {
+                const points = Math.floor(Math.random() * 100 + 1);
+                this.game.addPoints(points, hitBox.x, hitBox.y, 45);
+                this.game.addPowerUpGem(
+                  hitBox.x - Math.random() * 500,
+                  hitBox.y + Math.random() * hitBox.height
+                );
+              }
+              this.vx = this.knockBackMaxX;
+              this.vy = -this.knockBackMaxY;
             }
           }
         } else {
-          if (enemyHealth <= 0) {
+          if (health <= 0) {
             enemy.markedForDeletion = true;
-            this.game.collisions.push(
-              new CollisionAnimation(
-                this.game,
-                enemyHitBox.x + enemyHitBox.width * 0.5,
-                enemyHitBox.y + enemyHitBox.height * 0.5
-              )
+            this.game.addCollision(
+              hitBox.x + hitBox.width * 0.5,
+              hitBox.y + hitBox.height * 0.5
             );
             if (enemy.isPoweredUp) {
-              //setTimeout(() => {
-              this.game.powerUps.push(
-                new PowerUp(
-                  this.game,
-                  enemyHitBox.x,
-                  enemyHitBox.y + enemyHitBox.height * 0.25
-                )
+              this.game.addPowerUpGem(
+                hitBox.x,
+                hitBox.y + hitBox.height * 0.25
               );
-              //}, 200);
             }
             if (this.#isDiving()) {
               const points = this.#isLanding()
                 ? enemy.getPoints() * 2
                 : enemy.getPoints() * 3;
-              this.game.score += points;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  `+${points}`,
-                  enemyHitBox.x,
-                  enemyHitBox.y,
-                  150,
-                  50
-                )
-              );
+              this.game.addPoints(points, hitBox.x, hitBox.y);
             } else if (this.#isRolling() || this.isEmpowered()) {
               const points = enemy.getPoints();
-              this.game.score += points;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  `+${points}`,
-                  enemyHitBox.x,
-                  enemyHitBox.y,
-                  150,
-                  50
-                )
-              );
+              this.game.addPoints(points, hitBox.x, hitBox.y);
             } else {
               this.setState(PLAYER_STATES.HIT, 0);
-              this.game.score -= 5;
-              this.game.floatingMessages.push(
-                new FloatingMessages(
-                  "-5",
-                  enemyHitBox.x,
-                  enemyHitBox.y,
-                  150,
-                  50
-                )
-              );
-              this.game.lives--;
-              if (this.game.lives <= 0) this.game.gameOver = true;
+              this.game.addPoints(-5, this.x, this.y - 25);
+              this.game.loseLife();
             }
           }
         }
       }
-    });
+    }
   }
   isOnGround() {
     return this.y >= this.#getGround();

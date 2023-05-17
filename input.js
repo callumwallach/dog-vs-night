@@ -47,7 +47,7 @@ class InputHandler {
           break;
         case ENTER:
           if (this.game.gameOver) {
-            this.game.restartGame();
+            this.game.startNewGame();
             break;
           }
         case R:
@@ -95,7 +95,12 @@ class InputHandler {
       // const swipeDistanceX = e.changedTouches[0].pageX - this.touchX;
       // const swipeDistanceY = e.changedTouches[0].pageY - this.touchY;
 
-      const action = this.#getAction(this.touchX, e.changedTouches[0].pageX, this.touchY, e.changedTouches[0].pageY);
+      const action = this.#getAction(
+        this.touchX,
+        e.changedTouches[0].pageX,
+        this.touchY,
+        e.changedTouches[0].pageY
+      );
       if (action && !this.#contains(action)) this.keys.push(action);
     });
   }

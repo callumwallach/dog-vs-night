@@ -1,4 +1,10 @@
-import { Dying, Flying, Shooting } from "./bossStates.js";
+import {
+  states as BOSS_STATES,
+  Dying,
+  Flying,
+  Shooting,
+  Threatening,
+} from "./bossStates.js";
 import { Enemy } from "./enemies.js";
 import appearance from "./assets/enemy_boss.js";
 import { Blast, Ice } from "./particle.js";
@@ -10,7 +16,7 @@ const ROTATED_ELLIPSE = 2;
 const hitBoxType = RECT;
 
 class BossEnemy extends Enemy {
-  constructor(game) {
+  constructor(game, maxHealth = 250) {
     super(game);
     this.width = 293;
     this.height = 350;
@@ -20,74 +26,62 @@ class BossEnemy extends Enemy {
     this.speedY = 0;
     this.maxFrame = 7;
     this.image = document.getElementById("enemyBoss");
-    this.maxHealth = 250;
+    this.maxHealth = maxHealth;
     this.health = this.maxHealth;
-    this.deathTimer = 0;
     this.states = [
       new Flying(this.game, appearance),
+      new Threatening(this.game, appearance),
       new Shooting(this.game, appearance),
       new Dying(this.game, appearance),
     ];
-    this.currentState = null;
+    this.currentState = this.states[0];
     this.dead = false;
-    this.isThreatening = false;
-    this.isShooting = false;
-    this.isFlying = true;
-    this.isDying = false;
-    this.threatTimer = 0;
-    this.threatInterval = 50;
     this.shootTimer = 0;
     this.shootInterval = 50;
   }
   update(deltaTime) {
-    // movement
-    //console.log(this.x, this.getStageRight());
-    if (this.dead) {
-      this.markedForDeletion = true;
-      setTimeout(() => {
-        this.game.success = true;
-        this.game.gameOver = true;
-      }, 750);
-    } else if (this.isDying && this.frameX === this.maxFrame - 1) {
-      this.dead = true;
-    } else {
-      this.x =
-        this.x < this.getStageRight() - this.width ||
-        this.isShooting ||
-        this.isThreatening
-          ? this.x
-          : this.x - this.speedX - 2;
-      this.y += this.speedY;
-      if (this.frameTimer > this.frameInterval) {
-        this.frameX = this.frameX < this.maxFrame ? this.frameX + 1 : 0;
-        this.frameTimer = 0;
-        if (this.isThreatening) {
-          if (this.frameX === this.maxFrame - 1) this.shoot();
-        } else if (this.isShooting) {
-          if (this.frameX === Math.floor(this.maxFrame / 2)) {
-            this.game.projectiles.unshift(
-              new Blast(
-                this.game,
-                this.x,
-                this.y + this.height * 0.5 * Math.random() + this.height * 0.5
-              )
+    // position boss
+    this.x =
+      this.x < this.game.width * 0.75 ? this.x : this.x - this.speedX - 2;
+    // advance frame
+    if (this.frameTimer > this.frameInterval) {
+      if (this.isDying() || this.#isThreatening() || this.#isShooting()) {
+        if (this.frameX < this.maxFrame) {
+          //console.log("frame", this.frameX, this.currentState.constructor.name);
+          this.frameX++;
+          if (this.isDying() && this.frameX % 2 === 0) {
+            this.game.addCollision(
+              this.x + this.width * 0.5,
+              this.y + this.height * 0.5
             );
           }
-          if (this.frameX === this.maxFrame - 1) this.fly();
         } else {
-          this.shootTimer++;
-          if (this.shootTimer > this.shootInterval) {
-            this.threat();
-            this.shootTimer = 0;
-          }
+          this.currentState.next();
+        }
+        if (
+          this.#isShooting() &&
+          this.frameX === Math.floor(this.maxFrame / 2)
+        ) {
+          this.game.projectiles.unshift(
+            new Blast(
+              this.game,
+              this.x,
+              this.y + this.height * 0.5 * Math.random() + this.height * 0.5
+            )
+          );
         }
       } else {
-        this.frameTimer += deltaTime;
+        this.frameX = this.frameX < this.maxFrame ? this.frameX + 1 : 0;
       }
-      //console.log(this.frameX);
-      // garbage collect if off screen
-      if (this.getPosition() < this.getStageLeft())
-        this.markedForDeletion = true;
+      this.frameTimer = 0;
+
+      this.shootTimer++;
+      if (this.shootTimer > this.shootInterval && !this.isDying()) {
+        this.setState(BOSS_STATES.THREATENING);
+        this.shootTimer = 0;
+      }
+    } else {
+      this.frameTimer += deltaTime;
     }
   }
   draw(context) {
@@ -118,11 +112,11 @@ class BossEnemy extends Enemy {
     }
     let theX = this.x;
     let theY = this.y;
-    if (this.isShooting) {
+    if (this.#isShooting() /* || this.isShooting */) {
       theX = this.x - 74;
       theY = this.y + 25;
     }
-    if (this.isThreatening) {
+    if (this.#isThreatening() /*|| this.isThreatening */) {
       theX = this.x + 7;
       theY = this.y - 47;
     }
@@ -140,54 +134,14 @@ class BossEnemy extends Enemy {
       );
     }
   }
-  fly() {
-    this.width = 293;
-    this.height = 350;
-    this.offsetY = 1;
-    this.frameX = 0;
-    this.frameY = 0;
-    this.maxFrame = 7;
-    this.isThreatening = false;
-    this.isFlying = true;
-    this.isShooting = false;
-    this.isDying = false;
+  setState(state) {
+    this.currentState = this.states[state];
+    this.currentState.enter();
   }
-  shoot() {
-    this.width = 440;
-    this.height = 348;
-    this.offsetY = 353;
-    this.frameX = 0;
-    this.frameY = 1;
-    this.maxFrame = 8;
-    this.isThreatening = false;
-    this.isShooting = true;
-    this.isFlying = false;
-    this.isDying = false;
-  }
-  threat() {
-    this.width = 332;
-    this.height = 396;
-    this.offsetY = 703;
-    this.frameX = 0;
-    this.frameY = 1;
-    this.maxFrame = 8;
-    this.isThreatening = true;
-    this.isShooting = false;
-    this.isFlying = false;
-    this.isDying = false;
-  }
-  death() {
-    this.frameInterval = 2000 / this.fps;
-    this.width = 331;
-    this.height = 380;
-    this.offsetY = 1101;
-    this.frameX = 0;
-    this.frameY = 3;
-    this.maxFrame = 12;
-    this.isThreatening = false;
-    this.isShooting = false;
-    this.isFlying = false;
-    this.isDying = true;
+  setDying() {
+    //console.log("current state", this.currentState.constructor.name);
+    this.currentState = this.states[BOSS_STATES.DYING];
+    this.currentState.enter();
   }
   #getEllipseHitBox() {
     const horizontalCentrePoint = this.x + this.width * 0.45;
@@ -218,34 +172,30 @@ class BossEnemy extends Enemy {
     };
   }
   #getRectHitBox() {
-    if (this.isFlying)
+    if (this.#isFlying()) {
       return {
         x: this.x + this.width * 0.15,
         y: this.y + this.height * 0.1,
         width: this.width * 0.6,
         height: this.height * 0.85,
       };
-    if (this.isShooting)
+    } else if (this.#isShooting()) {
       return {
         x: this.x - this.width * 0.1,
         y: this.y + this.height * 0.1,
         width: this.width * 0.6,
         height: this.height * 0.85,
       };
-    if (this.isThreatening)
+    } else if (this.#isThreatening()) {
       return {
         x: this.x + this.width * 0.15,
         y: this.y - this.height * 0.1,
         width: this.width * 0.6,
         height: this.height * 0.85,
       };
-    if (this.isDying)
-      return {
-        x: this.x + this.width * 0.15,
-        y: this.y + this.height * 0.1,
-        width: this.width * 0.6,
-        height: this.height * 0.85,
-      };
+    } else if (this.isDying()) {
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
   }
   getHitBox() {
     return this.#getRectHitBox();
@@ -258,6 +208,18 @@ class BossEnemy extends Enemy {
     //   default:
     //     return this.#getRectHitBox();
     // }
+  }
+  #isFlying() {
+    return this.currentState === this.states[BOSS_STATES.FLYING];
+  }
+  #isShooting() {
+    return this.currentState === this.states[BOSS_STATES.SHOOTING];
+  }
+  #isThreatening() {
+    return this.currentState === this.states[BOSS_STATES.THREATENING];
+  }
+  isDying() {
+    return this.currentState === this.states[BOSS_STATES.DYING];
   }
 }
 

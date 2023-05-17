@@ -1,13 +1,15 @@
 import { Dust, Fire, Splash } from "./particle.js";
 
 const FLYING = "FLY";
+const THREATENING = "THREATEN";
 const SHOOTING = "SHOOT";
 const DYING = "DIE";
 
 const states = {
   FLYING: 0,
-  SHOOTING: 1,
-  DYING: 2,
+  THREATENING: 1,
+  SHOOTING: 2,
+  DYING: 3,
 };
 
 class State {
@@ -39,66 +41,53 @@ class State {
 
 class Flying extends State {
   constructor(game, appearance) {
-    //super(SITTING, game, 6, 5, appearance);
-    super(FLYING, game, 6, 8, appearance);
+    super(FLYING, game, 0, 8, appearance);
   }
   enter() {
     super.enter();
-    this.game.player.speed = 0;
   }
-  handleInput(input) {
-    if (input.includes([MOVE_UP])) this.game.player.setState(states.JUMPING, 1);
-    if (input.includes([MOVE_LEFT, MOVE_RIGHT]))
-      this.game.player.setState(states.RUNNING, 1);
-    if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
+  next() {}
+}
+
+class Threatening extends State {
+  constructor(game, appearance) {
+    super(THREATENING, game, 2, 8, appearance);
+  }
+  enter() {
+    super.enter();
+  }
+  next() {
+    this.game.boss.setState(states.SHOOTING);
   }
 }
 
 class Shooting extends State {
   constructor(game, appearance) {
-    //super(RUNNING, game, 4, 9, appearance);
-    super(SHOOTING, game, 4, 4, appearance);
+    super(SHOOTING, game, 1, 8, appearance);
   }
   enter() {
     super.enter();
   }
-  handleInput(input) {
-    if (this.game.bossStage && input.keys.length === 0) {
-      this.game.player.setState(states.SITTING, 0);
-    } else {
-      this.game.particles.unshift(
-        new Dust(
-          this.game,
-          this.game.player.x + this.game.player.width * 0.6,
-          this.game.player.y + this.game.player.height
-        )
-      );
-      if (input.includes([MOVE_DOWN]))
-        this.game.player.setState(states.SITTING, 0);
-      if (input.includes([MOVE_UP]))
-        this.game.player.setState(states.JUMPING, 1);
-      if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
-    }
+  next() {
+    this.game.boss.setState(states.FLYING);
   }
 }
 
 class Dying extends State {
   constructor(game, appearance) {
-    //super(JUMPING, game, 2, 7, appearance);
-    super(DYING, game, 2, 2, appearance);
+    super(DYING, game, 4, 12, appearance);
   }
   enter() {
     super.enter();
-    if (this.game.player.isOnGround())
-      this.game.player.vy -= this.game.player.jumpMax;
   }
-  handleInput(input) {
-    // if down arc of jump set to falling
-    if (this.game.player.vy > 0) this.game.player.setState(states.FALLING, 1);
-    if (input.includes([ENTER])) this.game.player.setState(states.ROLLING, 2);
-    if (input.includes([MOVE_DOWN]))
-      this.game.player.setState(states.DIVING, 0);
+  next() {
+    this.game.boss.dead = true;
+    this.game.boss.markedForDeletion = true;
+    setTimeout(() => {
+      this.game.success = true;
+      this.game.gameOver = true;
+    }, 750);
   }
 }
 
-export { states, Flying, Shooting, Dying };
+export { states, Flying, Threatening, Shooting, Dying };

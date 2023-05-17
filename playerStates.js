@@ -138,9 +138,13 @@ class Rolling extends State {
   constructor(game, appearance) {
     //super(ROLLING, game, 7, 7, appearance);
     super(ROLLING, game, 7, 3, appearance);
+    // this.sound = new Audio();
+    // this.sound.src = "./assets/fire.ogg";
+    // this.sound.loop = true;
   }
   enter() {
     super.enter();
+    //this.sound.play();
   }
   handleInput(input) {
     this.game.particles.unshift(
@@ -166,9 +170,13 @@ class Empowered extends State {
   constructor(game, appearance) {
     //super(ROLLING, game, 7, 7, appearance);
     super(ROLLING, game, 7, 3, appearance);
+    // this.sound = new Audio();
+    // this.sound.src = "./assets/fire.wav";
+    // this.sound.loop = true;
   }
   enter() {
     super.enter();
+    //this.sound.play();
     this.empowered = true;
     const EMPOWERED_TIME = 10 * 1000;
     this.game.player.empoweredTimer = EMPOWERED_TIME;
@@ -179,6 +187,8 @@ class Empowered extends State {
   }
   exit() {
     this.empowered = false;
+    // this.sound.pause();
+    // this.sound.currentTime = 0;
   }
   handleInput(input) {
     //this.timer = this.timer > 0 ? this.timer - 1 : 0;

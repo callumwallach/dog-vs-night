@@ -90,8 +90,6 @@ class UI {
     }
     // game over
     if (this.game.gameOver) {
-      const playerWon =
-        this.game.success || this.game.score >= this.game.winningScore;
       context.textAlign = "center";
       context.font = `${this.fontSize * 2}px ${this.fontFamily}`;
       //const heading = playerWon ? `Well done!` : `Love at first bite?`;

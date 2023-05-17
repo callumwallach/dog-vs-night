@@ -15,9 +15,12 @@ class CollisionAnimation {
     this.fps = Math.random() * 10 + 5;
     this.frameInterval = 1000 / this.fps;
     this.frameTimer = 0;
+    this.sound = new Audio();
+    this.sound.src = "./assets/boom.wav";
   }
   update(deltaTime) {
     this.x -= this.game.speed;
+    if (this.frameX === 0) this.sound.play();
     if (this.frameTimer > this.frameInterval) {
       this.frameX++;
       this.frameTimer = 0;
@@ -41,4 +44,11 @@ class CollisionAnimation {
   }
 }
 
-export default CollisionAnimation;
+class ExplosionAnimation extends CollisionAnimation {
+  constructor(game, x, y) {
+    super(game, x, y);
+    this.sound.src = "./assets/explosion.wav";
+  }
+}
+
+export { CollisionAnimation, ExplosionAnimation };
