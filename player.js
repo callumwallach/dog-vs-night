@@ -1,6 +1,7 @@
 // prettier-ignore
 import {
   states as PLAYER_STATES,
+  Standing,
   Sitting,
   Running,
   Jumping,
@@ -12,47 +13,72 @@ import {
   KnockedBack,
 } from "./playerStates.js";
 import { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT } from "./constants.js";
-import appearance from "./assets/boy.js";
+import dog from "./assets/dog.js";
+import girl from "./assets/girl.js";
+import boy from "./assets/boy.js";
 
 const RECT = 0;
 const ELLIPSE = 1;
 const ROTATED_ELLIPSE = 2;
 
+const appearances = {
+  DOG: "dog",
+  BOY: "boy",
+  GIRL: "girl",
+};
+
 const hitBoxType = RECT;
 
 class Player {
-  constructor(game) {
+  constructor(game, character) {
     this.game = game;
     this.width = 0; //100;
     this.height = 0; //91.3;
-    this.x = 0;
+    this.x = this.game.pointer === "touch" ? 100 : 50;
     this.y = 0; //this.#getGround();
     this.vx = 0;
     this.vy = 0;
     this.weight = 1;
+    // console.log(girl.frames);
+    // const
     //this.image = player;
-    this.image = document.getElementById(appearance.imageName);
+    this.appearance;
+    switch (character.toLowerCase()) {
+      case appearances.BOY:
+        this.appearance = boy;
+        break;
+      case appearances.GIRL:
+        this.appearance = girl;
+        break;
+      case appearances.DOG:
+      default:
+        this.appearance = dog;
+        break;
+    }
+    //console.log(character, appearance);
+    this.image = document.getElementById(this.appearance.imageName);
     this.offsetY = null;
     this.frameX = 0;
     this.frameY = 0;
     this.jumpMax = 27;
     // sitting default
     this.maxFrame = 4;
-    this.fps = 20;
+    this.fps = this.game.fps;
     this.frameInterval = 1000 / this.fps;
     this.frameTimer = 0;
     this.speed = 0;
     this.maxSpeed = 10;
     this.states = [
-      new Sitting(this.game, appearance),
-      new Running(this.game, appearance),
-      new Jumping(this.game, appearance),
-      new Falling(this.game, appearance),
-      new Rolling(this.game, appearance),
-      new Diving(this.game, appearance),
-      new Hit(this.game, appearance),
-      new Empowered(this.game, appearance),
-      new KnockedBack(this.game, appearance),
+      new Standing(this.game, this.appearance),
+      new Sitting(this.game, this.appearance),
+      new Running(this.game, this.appearance),
+      new Jumping(this.game, this.appearance),
+      new Falling(this.game, this.appearance),
+      new Rolling(this.game, this.appearance),
+      new Diving(this.game, this.appearance),
+      new Hit(this.game, this.appearance),
+      new Empowered(this.game, this.appearance),
+      new KnockedBack(this.game, this.appearance),
     ];
     this.currentState = null;
     this.knockBackMaxX = 30;
@@ -145,6 +171,15 @@ class Player {
       this.height
     );
   }
+  getTouchRollIcon() {
+    return {
+      image: this.image,
+      x: 0,
+      y: this.states[PLAYER_STATES.ROLLING].getDimensions().offsetY,
+      width: this.states[PLAYER_STATES.ROLLING].getDimensions().width,
+      height: this.states[PLAYER_STATES.ROLLING].getDimensions().height,
+    };
+  }
   #getEllipseHitBox() {
     const horizontalCentrePoint = this.x + this.width * 0.55;
     const verticalCentrePoint = this.y + this.height * 0.55;
@@ -188,6 +223,7 @@ class Player {
         powerUp.y < this.y + this.height &&
         powerUp.y + powerUp.height > this.y
       ) {
+        this.game.addPoints(25, powerUp.x, powerUp.y, 35);
         powerUp.markedForDeletion = true;
         this.setState(PLAYER_STATES.EMPOWERED, 2);
       }
@@ -320,4 +356,4 @@ class Player {
   }
 }
 
-export default Player;
+export { appearances, Player };

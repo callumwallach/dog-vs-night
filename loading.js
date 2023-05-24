@@ -1,47 +1,30 @@
+import settings from "./settings.js";
+
 class Loading {
   constructor(game) {
     this.game = game;
     this.fontSize = 40;
     this.fontFamily = "Creepster";
+    this.text = settings[this.game.recipient].loading;
   }
   update() {}
   draw(context) {
+    const gw = this.game.width;
+    const gh = this.game.height;
     context.save();
-    context.shadowOffsetX = 4;
-    context.shadowOffsetY = 4;
+    context.fillStyle = "rgba(255,255,255,.15)";
+    context.fillRect(0, 0, gw, gh);
+    context.shadowOffsetX = 2;
+    context.shadowOffsetY = 2;
     context.shadowColor = "white";
     context.shadowBlur = 0;
     context.fillStyle = this.game.fontColor;
     context.textAlign = "center";
-    context.font = `${this.fontSize * 2}px ${this.fontFamily}`;
-    const heading = `Andrew vs Father Time`;
-    const message = `A desperate attempt to rewind the clock!`;
-    context.fillText(
-      heading,
-      this.game.width * 0.5,
-      this.game.height * 0.5 - 20
-    );
-    context.font = `${this.fontSize * 0.7}px ${this.fontFamily}`;
-    context.fillText(
-      message,
-      this.game.width * 0.5,
-      this.game.height * 0.5 + 20
-    );
+    this.text.forEach((line) => {
+      context.font = `${this.fontSize * line.fontSize}px ${this.fontFamily}`;
+      context.fillText(line.message, gw * 0.5, gh * 0.5 + line.position);
+    });
     context.restore();
-  }
-  fadeOut(text) {
-    var alpha = 1.0, // full opacity
-      interval = setInterval(function () {
-        canvas.width = canvas.width; // Clears the canvas
-        context.fillStyle = "rgba(255, 0, 0, " + alpha + ")";
-        context.font = "italic 20pt Arial";
-        context.fillText(text, 50, 50);
-        alpha = alpha - 0.05; // decrease opacity (fade out)
-        if (alpha < 0) {
-          canvas.width = canvas.width;
-          clearInterval(interval);
-        }
-      }, 50);
   }
 }
 

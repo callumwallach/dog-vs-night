@@ -4,7 +4,13 @@
   box-sizing: border-box;
 }
 
+body {
+  background-color: #181a1b;
+  overscroll-behavior-y: contain;
+}
+
 #canvas1 {
+  display: none;
   border: 5px solid black;
   position: absolute;
   top: 50%;
@@ -39,10 +45,23 @@
 }
 
 #fullScreenButton {
+  display: none;
   position: absolute;
-  font-size: 20px;
+  font-family: "Creepster", cursive;
+  font-size: 16px;
   padding: 10px;
   top: 10px;
+  left: 50%;
+  transform: translate(-50%);
+}
+
+#loading {
+  color: white !important;
+  position: absolute;
+  font-size: 1.5rem;
+  font-family: Arial, "Creepster", cursive;
+  padding: 10px;
+  top: 50%;
   left: 50%;
   transform: translate(-50%);
 }

@@ -1,6 +1,6 @@
 import UI from "./UI.js";
 import Loading from "./loading.js";
-import Player from "./player.js";
+import { Player } from "./player.js";
 import InputHandler from "./input.js";
 import Background from "./background.js";
 import { FlyingEnemy, GroundEnemy, ClimbingEnemy } from "./enemies.js";
@@ -11,35 +11,68 @@ import {
   CollisionAnimation,
   ExplosionAnimation,
 } from "./collisionAnimation.js";
+import Controls from "./controls.js";
+import settings from "./settings.js";
+
+const MOUSE = "mouse";
+const TOUCH = "touch";
+
+const ANDREW = "andrew";
+const ANYA = "anya";
+const DEFAULT = "default";
+
+const owner = DEFAULT;
+
+let myFont = new FontFace(
+  "Creepster",
+  "url(https://fonts.gstatic.com/s/creepster/v13/AlZy_zVUqJz4yMrniH4Rcn35.woff2)"
+);
+
+myFont.load().then((font) => {
+  document.fonts.add(font);
+});
 
 window.addEventListener("load", () => {
+  document.title = settings[owner].title;
   const canvas = document.getElementById("canvas1");
+  canvas.style.display = "block";
+  document.getElementById("loading").style.display = "none";
   const ctx = canvas.getContext("2d");
   canvas.width = 1200;
   canvas.height = 500;
-  const maxLives = 5;
+  let maxLives = 5;
   let newGame = true;
   let lastTime = 0;
   let animationRequest;
   const maxTime = 3 * 60 * 1000;
-  const enemyInterval = 2 * 1000;
-  const bossInterval = 1 * 60 * 1000;
-  const bossMaxHealth = 250;
+  let fps = 20;
+  let enemyInterval = 2 * 1000;
+  let bossInterval = 1 * 60 * 1000;
+  let bossMaxHealth = 250;
+  let maxParticles = 50;
+  let sound = true;
+  let powerBar = true;
+  let debug = false;
   const fullScreenButton = document.getElementById("fullScreenButton");
+  if (document.fullscreenEnabled) {
+    fullScreenButton.style.display = "block";
+    fullScreenButton.addEventListener("click", toggleFullScreen);
+  }
 
   class Game {
-    constructor(width, height) {
-      this.debug = false;
+    constructor(recipient, width, height) {
+      this.version = 1.4;
+      console.log("version:", this.version);
+      this.recipient = recipient;
+      this.pointer = MOUSE;
       this.width = width;
       this.height = height;
       this.groundMargin = 40;
       this.isLoading = true;
-      this.maxParticles = 50;
-      this.enemyInterval = enemyInterval;
-      this.bossInterval = bossInterval;
-      this.bossMaxHealth = bossMaxHealth;
       this.fontColor = "black";
       this.maxTime = maxTime;
+      this.fullScreen = false;
+      this.input = new InputHandler(this, canvas);
       this.init();
     }
     update(deltaTime) {
@@ -108,6 +141,7 @@ window.addEventListener("load", () => {
       this.projectiles.forEach((projectile) => projectile.draw(context));
       this.particles.forEach((particle) => particle.draw(context));
       this.collisions.forEach((collision) => collision.draw(context));
+      this.controls.draw(context);
       this.floatingMessages.forEach((message) => message.draw(context));
       this.UI.draw(context);
     }
@@ -150,10 +184,24 @@ window.addEventListener("load", () => {
       if (this.lives <= 0) this.gameOver = true;
     }
     init() {
+      // possible url params
+      this.debug = debug;
+      this.powerBar = powerBar;
+      this.sound = sound;
+      this.lives = maxLives;
+      this.maxParticles = maxParticles;
+      this.enemyInterval = enemyInterval;
+      this.bossInterval = bossInterval;
+      this.bossMaxHealth = bossMaxHealth;
+      //console.log(settings[this.recipient]);
+      this.character = settings[this.recipient].character;
+      this.fps = fps;
+      // local resets
       this.speed = 0;
       this.maxSpeed = 4;
-      this.player = new Player(this);
-      this.input = new InputHandler(this);
+      this.player = new Player(this, this.character);
+      this.controls = new Controls(this, this.player.getTouchRollIcon());
+      this.input.init();
       this.background = new Background(this);
       this.UI = new UI(this);
       this.loading = new Loading(this);
@@ -170,7 +218,11 @@ window.addEventListener("load", () => {
       this.time = 0;
       this.gameOver = false;
       this.success = false;
-      this.lives = maxLives;
+      // pointer conditions
+      if (this.pointer === TOUCH) {
+        this.maxParticles = Math.min(25, this.maxParticles);
+      }
+      // enter state
       this.player.currentState = this.player.states[0];
       this.player.currentState.enter();
     }
@@ -184,20 +236,22 @@ window.addEventListener("load", () => {
     }
   }
 
+  const game = new Game(owner, canvas.width, canvas.height);
+
   function toggleFullScreen() {
     if (!document.fullscreenElement) {
       canvas
         .requestFullscreen()
+        .then(() => {
+          game.fullScreen = true;
+        })
         .catch((err) =>
-          alert(`Error, can't enable full screen mode: ${err.message}`)
+          alert(`Error, can't enable full screen ${err.message}`)
         );
     } else {
       document.exitFullscreen();
     }
   }
-  fullScreenButton.addEventListener("click", toggleFullScreen);
-
-  const game = new Game(canvas.width, canvas.height);
 
   function animate(timeStamp) {
     let deltaTime = timeStamp - lastTime;
@@ -212,17 +266,46 @@ window.addEventListener("load", () => {
     if (!game.gameOver) animationRequest = requestAnimationFrame(animate);
   }
 
+  function processURLParams(urlParams) {
+    const a = urlParams.get("player");
+    if (a) character = a;
+    const f = parseInt(urlParams.get("fps"));
+    if (f) fps = f;
+    const bi = parseInt(urlParams.get("bi"));
+    if (bi) bossInterval = bi;
+    const bh = parseInt(urlParams.get("bh"));
+    if (bh) bossMaxHealth = bh;
+    const ei = parseInt(urlParams.get("ei"));
+    if (ei) enemyInterval = ei;
+    const lives = parseInt(urlParams.get("lives"));
+    if (lives) maxLives = lives;
+    const p = parseInt(urlParams.get("p"));
+    if (p) maxParticles = p;
+    const s = urlParams.get("sound") === "off";
+    if (s) sound = !s;
+    const b = urlParams.get("bar") === "off";
+    if (b) powerBar = !b;
+    debug = urlParams.has("debug");
+    if (debug) console.log(urlParams);
+  }
+
   function run() {
+    processURLParams(new URLSearchParams(window.location.search));
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     game.background.draw(ctx);
     game.loading.draw(ctx);
-    window.addEventListener(
-      "keydown",
+    canvas.addEventListener(
+      "pointerdown",
       (e) => {
+        if (e.pointerType === MOUSE) game.pointer = MOUSE;
+        if (e.pointerType === TOUCH) game.pointer = TOUCH;
         game.startNewGame();
       },
       { once: true }
     );
+    window.addEventListener("resize", function () {
+      console.log("window resize", canvas.width, canvas.height);
+    });
   }
   run();
 });

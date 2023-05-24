@@ -15,12 +15,15 @@ class CollisionAnimation {
     this.fps = Math.random() * 10 + 5;
     this.frameInterval = 1000 / this.fps;
     this.frameTimer = 0;
-    this.sound = new Audio();
-    this.sound.src = "./assets/boom.wav";
+    if (this.game.sound) {
+      //this.sound = document.getElementById("boom");
+      this.sound = new Audio();
+      this.sound.src = "./assets/boom.wav";
+    }
   }
   update(deltaTime) {
     this.x -= this.game.speed;
-    if (this.frameX === 0) this.sound.play();
+    if (this.game.sound) if (this.frameX === 0) this.sound.play();
     if (this.frameTimer > this.frameInterval) {
       this.frameX++;
       this.frameTimer = 0;

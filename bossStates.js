@@ -1,5 +1,3 @@
-import { Dust, Fire, Splash } from "./particle.js";
-
 const FLYING = "FLY";
 const THREATENING = "THREATEN";
 const SHOOTING = "SHOOT";

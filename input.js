@@ -18,14 +18,13 @@ import {
   R,
 } from "./constants.js";
 
+const TOUCH = "touch";
+
 class InputHandler {
-  constructor(game) {
+  constructor(game, canvas) {
     this.game = game;
-    this.keys = [];
-    this.touchX = "";
-    this.touchY = "";
-    this.touchThresholdX = 30;
-    this.touchThresholdY = 30;
+    this.canvas = canvas;
+    this.init();
     window.addEventListener("keydown", (e) => {
       switch (e.key) {
         case ARROW_UP:
@@ -82,18 +81,24 @@ class InputHandler {
       }
     });
     window.addEventListener("touchstart", (e) => {
+      //console.log(e);
+      e.preventDefault();
       this.touchX = e.changedTouches[0].pageX;
       this.touchY = e.changedTouches[0].pageY;
+      const pos = getMousePos(this.canvas, e.changedTouches[0]);
+      if (this.game.controls.isClicked(pos.x, pos.y)) {
+        this.controlsClicked = !this.controlsClicked;
+      }
+      if (this.game.gameOver) this.game.startNewGame();
     });
     window.addEventListener("touchend", (e) => {
-      this.keys.splice(this.keys.indexOf(MOVE_UP), 1);
-      this.keys.splice(this.keys.indexOf(MOVE_DOWN), 1);
-      this.keys.splice(this.keys.indexOf(MOVE_LEFT), 1);
-      this.keys.splice(this.keys.indexOf(MOVE_RIGHT), 1);
+      this.keys = [];
+      //console.log(this.controlsClicked ? "active" : "inactive");
+      if (this.controlsClicked)
+        if (!this.#contains(ENTER)) this.keys.push(ENTER);
     });
     window.addEventListener("touchmove", (e) => {
-      // const swipeDistanceX = e.changedTouches[0].pageX - this.touchX;
-      // const swipeDistanceY = e.changedTouches[0].pageY - this.touchY;
+      e.preventDefault();
 
       const action = this.#getAction(
         this.touchX,
@@ -103,6 +108,14 @@ class InputHandler {
       );
       if (action && !this.#contains(action)) this.keys.push(action);
     });
+  }
+  init() {
+    this.keys = [];
+    this.touchX = "";
+    this.touchY = "";
+    this.touchThresholdX = 30;
+    this.touchThresholdY = 30;
+    this.controlsClicked = false;
   }
   #getAction(startX, endX, startY, endY, thresholdX, thresholdY) {
     //console.log(startX, endX, startY, endY, thresholdX, thresholdY);
@@ -135,6 +148,14 @@ class InputHandler {
     }
     return false;
   }
+}
+
+function getMousePos(canvas, evt) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((evt.clientX - rect.left) / (rect.right - rect.left)) * canvas.width,
+    y: ((evt.clientY - rect.top) / (rect.bottom - rect.top)) * canvas.height,
+  };
 }
 
 export default InputHandler;
