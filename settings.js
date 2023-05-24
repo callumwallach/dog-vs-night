@@ -18,9 +18,9 @@ export default {
     end: {
       success: [
         {
-          fontSize: 3,
-          message: "Great job!!!",
-          position: -30,
+          fontSize: 3.5,
+          message: "Booyah!!!",
+          position: -35,
         },
         {
           fontSize: 1,
